@@ -7,8 +7,9 @@ import userRoutes from './api/routes/user.js'
 import authRoutes from './api/routes/auth.js'
 import seekerRoutes from './api/routes/seeker.js'
 
-const app = express();
+export const app = express();
 app.use(morgan('tiny'));
+app.use(express.static('public'));
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:5173', // your frontend URL
@@ -27,7 +28,9 @@ app.use('/auth', authRoutes);
 app.use('/seeker', seekerRoutes);
 
 
-
+app.get('/', (req, res) => {
+    res.send('Beneficiary Management Web Backend');
+});
 
 mongoose
     .connect(process.env.MONGODBURI)
