@@ -41,9 +41,9 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign({ cnic: newSeeker.cnic, id: newSeeker._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
 
-        res.status(200).json({ msg: "Get All User Successfully", token, seeker: newSeeker });
+        res.status(200).json({ msg: "Seeker registered successfully", token, seeker: newSeeker });
     } catch (error) {
-        res.status(500).json({ msg: "Error can't get all user", error: error.message });
+        res.status(500).json({ msg: "Error registering seeker", error: error.message });
     }
 });
 
@@ -56,7 +56,7 @@ router.get("/depart-wise", async (req, res) => {
                 $group: {
                     _id: {
                         depart: "$depart",
-                        status: "$status", // Group by both department and status
+                        status: "$status", 
                     },
                     count: { $sum: 1 }, // Count the number of seekers in each group
                 }
