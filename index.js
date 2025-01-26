@@ -7,12 +7,15 @@ import userRoutes from './api/routes/user.js'
 import authRoutes from './api/routes/auth.js'
 import seekerRoutes from './api/routes/seeker.js'
 
-export const app = express();
+const app = express();
 app.use(morgan('tiny'));
 app.use(express.static('public'));
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:5173', // your frontend URL
+    origin: [
+        'http://localhost:5173',
+        "https://beneficiary-management-web.vercel.app"
+    ], // your frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
     credentials: true, // Allows cookies to be sent
@@ -22,15 +25,11 @@ app.use(cors({
 const port = process.env.PORT || 4040;
 
 
-
 app.use('/users', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/seeker', seekerRoutes);
 
 
-app.get('/', (req, res) => {
-    res.send('Beneficiary Management Web Backend');
-});
 
 mongoose
     .connect(process.env.MONGODBURI)
@@ -39,6 +38,18 @@ mongoose
     );
 
 
+app.get('/', (req, res) => {
+    res.send('Beneficiary Management Web Backend');
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);  // Log error stack trace to the console
+    res.status(500).send('Something went wrong!');
+});
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+
+
+export default app;
