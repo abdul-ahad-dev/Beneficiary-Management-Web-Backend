@@ -3,9 +3,9 @@ import morgan from 'morgan';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import 'dotenv/config'
-import userRoutes from './routes/user.js'
-import authRoutes from './routes/auth.js'
-import seekerRoutes from './routes/seeker.js'
+import userRoutes from './api/routes/user.js'
+import authRoutes from './api/routes/auth.js'
+import seekerRoutes from './api/routes/seeker.js'
 
 const app = express();
 app.use(morgan('tiny'));
