@@ -1,7 +1,7 @@
 import express from "express"
 import 'dotenv/config';
 import Seeker from "../models/seeker.model.js";
-import jwt from 'jsonwebtoken'; 
+import jwt from 'jsonwebtoken';
 
 
 const router = express.Router();
@@ -21,6 +21,38 @@ const getNextAvailableAppointment = async (department) => {
 
     return nextAvailableTime;
 }
+
+router.get('/', async (req, res) => {
+    try {
+        const allSeeker = await Seeker.find();
+        const totalSeeker = await Seeker.countDocuments()
+
+        res.status(200).json({ msg: "Get All Seeker Successfully", seeker: allSeeker, totalSeeker });
+    } catch (error) {
+        res.status(500).json({ msg: "Error can't get all seeker", error: error.message });
+    }
+});
+
+
+router.get('/metadata', async (req, res) => {
+    try {
+        const departments = [
+            "Health Department",
+            "Blood Bank",
+            "Financial Aid",
+            "Medical Assistance",
+            "Education Support",
+            "Food Distribution",
+            "Job Training"
+        ];
+
+        const statuses = ["In Progress", "Completed", "Rejected"];
+
+        res.status(200).json({ departments, statuses });
+    } catch (error) {
+        res.status(500).json({ msg: "Error fetching metadata", error: error.message });
+    }
+});
 
 
 router.post('/register', async (req, res) => {
@@ -56,7 +88,7 @@ router.get("/depart-wise", async (req, res) => {
                 $group: {
                     _id: {
                         depart: "$depart",
-                        status: "$status", 
+                        status: "$status",
                     },
                     count: { $sum: 1 }, // Count the number of seekers in each group
                 }
@@ -109,15 +141,43 @@ router.get("/depart-wise", async (req, res) => {
 });
 
 
-
-router.get('/', async (req, res) => {
+router.get('/search', async (req, res) => {
     try {
-        const allSeeker = await Seeker.find();
-        const totalSeeker = await Seeker.countDocuments()
+        const { searchTerm, department, status, date } = req.query;
+        console.log(status)
+        let query = {};
 
-        res.status(200).json({ msg: "Get All Seeker Successfully", seeker: allSeeker, totalSeeker });
+        if (searchTerm) {
+            query.$or = [
+                { name: { $regex: searchTerm, $options: 'i' } },
+                { cnic: { $regex: searchTerm, $options: 'i' } }
+            ];
+        }
+
+        if (department) {
+            query.depart = department;
+        }
+
+        if (status) {
+            query.status = status;
+        }
+
+        if (date) {
+            const startDate = new Date(date);
+            const endDate = new Date(date);
+            endDate.setDate(endDate.getDate() + 1);
+
+            query.appointmentDateTime = {
+                $gte: startDate,
+                $lt: endDate
+            };
+        }
+
+        const seekers = await Seeker.find(query).sort({ appointmentDateTime: -1 });
+
+        res.status(200).json({ seekers });
     } catch (error) {
-        res.status(500).json({ msg: "Error can't get all seeker", error: error.message });
+        res.status(500).json({ msg: "Error searching records", error: error.message });
     }
 });
 
