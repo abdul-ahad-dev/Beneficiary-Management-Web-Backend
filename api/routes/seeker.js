@@ -2,9 +2,28 @@ import express from "express"
 import 'dotenv/config';
 import Seeker from "../models/seeker.model.js";
 import jwt from 'jsonwebtoken';
-
+import QRCode from 'qrcode';
+import CryptoJS from 'crypto-js';
 
 const router = express.Router();
+
+
+const ENCRYPTION_KEY = process.env.QR_ENCRYPTION_KEY || 'your-secret-key';
+
+// Function to encrypt seeker data
+const encryptSeekerData = (data) => {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+};
+
+// Function to generate QR code from encrypted data
+const generateQRCode = async (encryptedData) => {
+    try {
+        return await QRCode.toDataURL(encryptedData);
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        throw error;
+    }
+};
 
 
 const getNextAvailableAppointment = async (department) => {
@@ -26,7 +45,7 @@ router.get('/', async (req, res) => {
     try {
         const allSeeker = await Seeker.find();
         const totalSeeker = await Seeker.countDocuments()
-
+        console.log(allSeeker)
         res.status(200).json({ msg: "Get All Seeker Successfully", seeker: allSeeker, totalSeeker });
     } catch (error) {
         res.status(500).json({ msg: "Error can't get all seeker", error: error.message });
@@ -67,13 +86,36 @@ router.post('/register', async (req, res) => {
             depart,
             purpose,
             appointmentDateTime,
+            status: "In Progress",
         });
+
+        // Generate QR code for the new seeker
+        const seekerData = {
+            _id: newSeeker._id,
+            name: newSeeker.name,
+            cnic: newSeeker.cnic,
+            phone: newSeeker.phone,
+            depart: newSeeker.depart,
+            purpose: newSeeker.purpose,
+            status: newSeeker.status,
+            appointmentDateTime: newSeeker.appointmentDateTime
+        };
+        const encryptedData = encryptSeekerData(seekerData);
+        const qrCode = await generateQRCode(encryptedData);
+
         await newSeeker.save();
 
         const token = jwt.sign({ cnic: newSeeker.cnic, id: newSeeker._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
 
-        res.status(200).json({ msg: "Seeker registered successfully", token, seeker: newSeeker });
+        res.status(200).json({
+            msg: "Seeker registered successfully",
+            token,
+            seeker: {
+                ...newSeeker.toObject(),
+                qrCode
+            }
+        });
     } catch (error) {
         res.status(500).json({ msg: "Error registering seeker", error: error.message });
     }
